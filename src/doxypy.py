@@ -434,7 +434,12 @@ class Doxypy(object):
 		self.__flushBuffer()
 	
 def optParse():
-	"""Parses commandline options."""
+	"""Parses commandline options.
+	
+	Outputs to stderr if the filename could not be processed and exists with error code -1.
+	
+	@return string The filename attribute if it could be obtained
+	"""
 	parser = OptionParser(prog=__applicationName__, version="%prog " + __version__)
 	parser.set_usage("%prog [options] filename")
 	parser.add_option("--autobrief",
