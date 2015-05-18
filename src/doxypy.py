@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 
+"""
+@file doxpy\src\doxypy.py Doxypy
+@name Doxypy
+@package doxypy.src.doxypy
+@author "Philippe 'demod' Neumann (doxypy at demod dot org)",
+@author "Gina 'foosel' Haeussge (gina at foosel dot net)" 
+@date 14th October 2009
+@version 0.4.2
+
+Contains Application View Definitions.
+"""
+
 __applicationName__ = "doxypy"
 __blurb__ = """
 doxypy is an input filter for Doxygen. It preprocesses python
@@ -61,21 +73,36 @@ class FSM(object):
 	"""
 	
 	def __init__(self, start_state=None, transitions=[]):
+		"""Initialization Routine
+		@param self Object reference
+		@param start_state Sefines the start state (can be None)
+		@param transitions List of transitions"""
 		self.transitions = transitions
 		self.current_state = start_state
 		self.current_input = None
 		self.current_transition = None
 		
 	def setStartState(self, state):
+		"""Initialization Routine
+		@param self Object reference
+		@param state Modifies the current state to the defined state
+		"""
 		self.current_state = state
 
 	def addTransition(self, from_state, to_state, condition, callback):
+		"""addTransition Routine
+		@param self Object reference
+		@param from_state The from state where this transition is added
+		@param to_state The to state for this transition
+		@param condition The condition for this transition
+		@param callback The callback function utilized with this transition
+		"""
 		self.transitions.append([from_state, to_state, condition, callback])
 		
 	def makeTransition(self, input):
 		"""Makes a transition based on the given input.
-		
-		@param	input	input to parse by the FSM
+		@param self Object reference
+		@param input input to parse by the FSM
 		"""
 		for transition in self.transitions:
 			[from_state, to_state, condition, callback] = transition
@@ -91,7 +118,18 @@ class FSM(object):
 					return
 
 class Doxypy(object):
+	"""Doxypy Class"""
+	
+	"""
+	@var transitions holds the transitions
+	@var current_state holds the current state
+	@var current_input holds the current input
+	@var current_transition hold the currently active transition
+	"""
+	
 	def __init__(self):
+		"""Initialization Routine
+		@param self Object reference"""
 		string_prefixes = "[uU]?[rR]?"
 		
 		self.start_single_comment_re = re.compile("^\s*%s(''')" % string_prefixes)
@@ -177,17 +215,15 @@ class Doxypy(object):
 		self.indent = ""
 
 	def __closeComment(self):
-		"""Appends any open comment block and triggering block to the output."""
-		
+		"""Appends any open comment block and triggering block to the output.
+		@param self Object reference"""
 		if options.autobrief:
 			if len(self.comment) == 1 \
 			or (len(self.comment) > 2 and self.comment[1].strip() == ''):
 				self.comment[0] = self.__docstringSummaryToBrief(self.comment[0])
-			
 		if self.comment:
 			block = self.makeCommentBlock()
 			self.output.extend(block)
-			
 		if self.defclass:
 			self.output.extend(self.defclass)
 
@@ -196,7 +232,10 @@ class Doxypy(object):
 		
 		A \\brief is prepended, provided no other doxygen command is at the
 		start of the line.
-		"""
+		
+		@param self Object reference
+		@param line The line content to process
+		@return string The processed line content"""
 		stripped = line.strip()
 		if stripped and not stripped[0] in ('@', '\\'):
 			return "\\brief " + line
@@ -204,7 +243,8 @@ class Doxypy(object):
 			return line
 	
 	def __flushBuffer(self):
-		"""Flushes the current outputbuffer to the outstream."""
+		"""Flushes the current outputbuffer to the outstream.
+		@param self Object reference"""
 		if self.output:
 			try:
 				if options.debug:
@@ -219,14 +259,19 @@ class Doxypy(object):
 		self.output = []
 
 	def catchall(self, input):
-		"""The catchall-condition, always returns true."""
+		"""The catchall-condition, always returns true.
+		@param self Object reference
+		@param input The input object
+		@return Boolean Currently always returns True"""
 		return True
 	
 	def resetCommentSearch(self, match):
 		"""Restarts a new comment search for a different triggering line.
 		
 		Closes the current commentblock and starts a new comment search.
-		"""
+		
+		@param self Object reference
+		@param match The match object"""
 		if options.debug:
 			print >>sys.stderr, "# CALLBACK: resetCommentSearch" 
 		self.__closeComment()
@@ -237,7 +282,9 @@ class Doxypy(object):
 		
 		Saves the triggering line, resets the current comment and saves
 		the current indentation.
-		"""
+		
+		@param self Object reference
+		@param match The match object"""
 		if options.debug:
 			print >>sys.stderr, "# CALLBACK: startCommentSearch"
 		self.defclass = [self.fsm.current_input]
@@ -249,7 +296,9 @@ class Doxypy(object):
 		
 		Closes the current commentblock, resets	the triggering line and
 		appends the current line to the output.
-		"""
+		
+		@param self Object reference
+		@param match The match object"""
 		if options.debug:
 			print >>sys.stderr, "# CALLBACK: stopCommentSearch" 
 		self.__closeComment()
@@ -261,7 +310,9 @@ class Doxypy(object):
 		"""Appends a line in the FILEHEAD state.
 		
 		Closes the open comment	block, resets it and appends the current line.
-		""" 
+		
+		@param self Object reference
+		@param match The match object"""
 		if options.debug:
 			print >>sys.stderr, "# CALLBACK: appendFileheadLine" 
 		self.__closeComment()
@@ -273,7 +324,9 @@ class Doxypy(object):
 		
 		The comment delimiter is removed from multiline start and ends as
 		well as singleline comments.
-		"""
+		
+		@param self Object reference
+		@param match The match object"""
 		if options.debug:
 			print >>sys.stderr, "# CALLBACK: appendCommentLine" 
 		(from_state, to_state, condition, callback) = self.fsm.current_transition
@@ -310,13 +363,19 @@ class Doxypy(object):
 			self.comment.append(self.fsm.current_input)
 	
 	def appendNormalLine(self, match):
-		"""Appends a line to the output."""
+		"""Appends a line to the output.
+		
+		@param self Object reference
+		@param match The match object"""
 		if options.debug:
 			print >>sys.stderr, "# CALLBACK: appendNormalLine" 
 		self.output.append(self.fsm.current_input)
 		
 	def appendDefclassLine(self, match):
-		"""Appends a line to the triggering block."""
+		"""Appends a line to the triggering block.
+		
+		@param self Object reference
+		@param match The match object"""
 		if options.debug:
 			print >>sys.stderr, "# CALLBACK: appendDefclassLine" 
 		self.defclass.append(self.fsm.current_input)
@@ -324,9 +383,9 @@ class Doxypy(object):
 	def makeCommentBlock(self):
 		"""Indents the current comment block with respect to the current
 		indentation level.
-
-		@returns a list of indented comment lines
-		"""
+		
+		@param self Object reference
+		@return List A list of indented comment lines"""
 		doxyStart = "##"
 		commentLines = self.comment
 		
@@ -340,28 +399,24 @@ class Doxypy(object):
 		"""Parses a python file given as input string and returns the doxygen-
 		compatible representation.
 		
-		@param	input	the python code to parse
-		@returns the modified python code
-		""" 
+		@param self Object reference
+		@param input The python code to parse
+		@returns the modified python code"""
 		lines = input.split("\n")
-		
 		for line in lines:
 			self.fsm.makeTransition(line)
-			
 		if self.fsm.current_state == "DEFCLASS":
 			self.__closeComment()
-		
 		return "\n".join(self.output)
 	
 	def parseFile(self, filename):
 		"""Parses a python file given as input string and returns the doxygen-
 		compatible representation.
 		
-		@param	input	the python code to parse
-		@returns the modified python code
-		""" 
+		@param self Object reference
+		@param filename The python code to parse
+		@returns the modified python code""" 
 		f = open(filename, 'r')
-		
 		for line in f:
 			self.parseLine(line.rstrip('\r\n'))
 		if self.fsm.current_state == "DEFCLASS":
@@ -373,15 +428,14 @@ class Doxypy(object):
 		"""Parse one line of python and flush the resulting output to the 
 		outstream.
 		
-		@param	line	the python code line to parse
-		"""
+		@param self Object reference
+		@param line the python code line to parse"""
 		self.fsm.makeTransition(line)
 		self.__flushBuffer()
 	
 def optParse():
 	"""Parses commandline options."""
 	parser = OptionParser(prog=__applicationName__, version="%prog " + __version__)
-	
 	parser.set_usage("%prog [options] filename")
 	parser.add_option("--autobrief",
 		action="store_true", dest="autobrief",
@@ -391,15 +445,12 @@ def optParse():
 		action="store_true", dest="debug",
 		help="enable debug output on stderr"
 	)
-	
 	## parse options
 	global options
 	(options, filename) = parser.parse_args()
-	
 	if not filename:
 		print >>sys.stderr, "No filename given."
 		sys.exit(-1)
-	
 	return filename[0]
 
 def main():
